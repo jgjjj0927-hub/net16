@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Узел {node} — {topic}</title>
+<style>
+  body {{ background:#0d0d0d; color:#c9c9c9; font-family:monospace; max-width:680px; margin:60px auto; padding:0 20px; line-height:1.7; }}
+  h1 {{ color:#fff; font-size:1.4em; font-weight:600; }}
+  .tag {{ color:#666; font-size:.85em; }}
+  ul {{ list-style:none; padding:0; }}
+  li {{ margin:10px 0; }}
+  a {{ color:#7aa2f7; text-decoration:none; }}
+  a:hover {{ text-decoration:underline; }}
+  .ddg {{ margin-top:40px; font-size:.85em; color:#444; }}
+  .bad {{ color:#f7768e; }}
+</style>
+</head>
+<body>
+<h1>Узел {node}</h1>
+<p class="tag">{topic}</p>
+<p>Это один из узлов сети. Связи ведут дальше — по одному шагу за раз.</p>
+<ul id="links">
+{links}
+</ul>
+<p class="ddg"><a href="{ddg}" rel="noopener noreferrer">→ выход</a></p>
+
+<script>
+(function () {{
+  const params = new URLSearchParams(location.search);
+  const k = params.get("k");
+  const list = document.getElementById("links");
+  if (!k) {{
+    // без ключа связи скрыты — узел не выдаёт карту
+    list.style.display = "none";
+    const msg = document.createElement("p");
+    msg.className = "bad";
+    msg.textContent = "Связи доступны только по ключу.";
+    list.parentNode.insertBefore(msg, list);
+    return;
+  }}
+  // ключ есть — ссылки уже в разметке, но проверим формат
+  try {{
+    const pad = "=".repeat((4 - (k.length % 4)) % 4);
+    atob(k.replace(/-/g, "+").replace(/_/g, "/") + pad);
+  }} catch (e) {{
+    list.style.display = "none";
+  }}
+}})();
+</script>
+</body>
+</html>
