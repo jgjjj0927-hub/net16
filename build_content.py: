@@ -1,0 +1,82 @@
+from pathlib import Path
+import re
+
+ROOT = Path(__file__).parent
+CONTENT = ROOT / "content"
+TEMPLATE = (ROOT / "templates" / "node.html").read_text(encoding="utf-8")
+OUT = ROOT / "output"
+
+NODES = "ABCDEFGHIJKLMNOP"
+
+TOPICS = {
+    "A": "Приватность в сети", "B": "Шифрование трафика",
+    "C": "Анонимность и Tor", "D": "Защита данных",
+    "E": "Пароли и менеджеры", "F": "VPN: как работает",
+    "G": "Метаданные и следы", "H": "Браузеры и fingerprint",
+    "I": "Почта без слежки", "J": "Мессенджеры",
+    "K": "Хранение файлов", "L": "ОС для приватности",
+    "M": "Сеть и DNS", "N": "Публичные Wi-Fi",
+    "O": "Социальная инженерия", "P": "Фишинг и защита",
+}
+
+LINKS = {
+    "A": ["B", "C", "E"], "B": ["C", "D", "F"], "C": ["D", "E", "G"],
+    "D": ["E", "F", "H"], "E": ["F", "G", "I"], "F": ["G", "H", "J"],
+    "G": ["H", "I", "K"], "H": ["I", "J", "L"], "I": ["J", "K", "M"],
+    "J": ["K", "L", "N"], "K": ["L", "M", "O"], "L": ["M", "N", "P"],
+    "M": ["N", "O", "A"], "N": ["O", "P", "B"], "O": ["P", "A", "C"],
+    "P": ["A", "B", "D"],
+}
+
+def encode(target: str) -> str:
+    import base64
+    return base64.urlsafe_b64encode(target.encode()).decode().rstrip("=")
+
+def md_to_html(md: str) -> str:
+    lines = md.splitlines()
+    out = []
+    in_list = False
+    for line in lines:
+        if line.startswith("# "):
+            out.append(f"<h2>{line[2:]}</h2>")
+        elif line.startswith("## "):
+            out.append(f"<h3>{line[3:]}</h3>")
+        elif line.startswith("- "):
+            if not in_list:
+                out.append("<ul>")
+                in_list = True
+            out.append(f"<li>{line[2:]}</li>")
+        else:
+            if in_list:
+                out.append("</ul>")
+                in_list = False
+            if line.strip():
+                out.append(f"<p>{line}</p>")
+    if in_list:
+        out.append("</ul>")
+    return "\n".join(out)
+
+def main():
+    for node in NODES:
+        md_file = CONTENT / f"{node}.md"
+        body = md_to_html(md_file.read_text(encoding="utf-8")) if md_file.exists() else "<p>Узел пока пуст.</p>"
+
+        links_html = ""
+        for n in LINKS[node]:
+            links_html += (
+                f'<li><a href="/node-{n.lower()}/?k={encode(n)}" '
+                f'data-node="{n}">{n}</a></li>\n'
+            )
+
+        page = TEMPLATE.format(
+            node=node, topic=TOPICS[node],
+            links=links_html, ddg="https://duckduckgo.com",
+            content=body,
+        )
+        node_dir = OUT / f"node-{node.lower()}"
+        node_dir.mkdir(parents=True, exist_ok=True)
+        (node_dir / "index.html").write_text(page, encoding="utf-8")
+    print("контент вставлен")
+
+if __name__ == "__main__":
+    main()
